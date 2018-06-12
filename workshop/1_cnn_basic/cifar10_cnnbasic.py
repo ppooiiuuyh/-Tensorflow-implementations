@@ -74,8 +74,8 @@ if __name__ == "__main__" :
     # 5.1 세션, 변수 초기화
     #----------------------------------
         sess.run(tf.global_variables_initializer())
-        writer_train = tf.summary.FileWriter('./board/hist')
-        writer_test = tf.summary.FileWriter('./board/hist')
+        writer_train = tf.summary.FileWriter('./board/hist/train',sess.graph)
+        writer_test = tf.summary.FileWriter('./board/hist/test',sess.graph)
 
     #---------------------------------
     # 5.2 Training loop
