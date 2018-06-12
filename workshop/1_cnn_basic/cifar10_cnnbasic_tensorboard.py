@@ -59,6 +59,13 @@ if __name__ == "__main__" :
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 
+#=========================================================
+# Option. tensorboard
+#=========================================================
+    accuracy_hist = tf.placeholder(tf.float32)
+    accuracy_hist_summary = tf.summary.scalar('acc_hist',accuracy_hist)
+    merged = tf.summary.merge_all()
+
 #==========================================================
 # 5. 학습
 #==========================================================
@@ -67,6 +74,8 @@ if __name__ == "__main__" :
     # 5.1 세션, 변수 초기화
     #----------------------------------
         sess.run(tf.global_variables_initializer())
+        writer_train = tf.summary.FileWriter('./board/hist/train',sess.graph)
+        writer_test = tf.summary.FileWriter('./board/hist/test',sess.graph)
 
     #---------------------------------
     # 5.2 Training loop
@@ -95,6 +104,7 @@ if __name__ == "__main__" :
                 train_accuracy_list.append(train_accuracy)
                 loss_list.append(loss_print)
 
+                writer_train.add_summary(sess.run(merged, feed_dict={accuracy_hist: np.mean(train_accuracy_list)}),e)
             print("반복(Epoch):", e, "트레이닝 데이터 정확도:", np.mean(train_accuracy_list), "손실 함수(loss):",np.mean(loss_list))
 
         # ..........................
@@ -113,5 +123,7 @@ if __name__ == "__main__" :
                 #== logging
                 test_accuracy = accuracy.eval(feed_dict={x: test_batch_x, y: test_batch_y})
                 test_accuracy_list.append(test_accuracy)
+
+                writer_test.add_summary(sess.run(merged, feed_dict={accuracy_hist: np.mean(test_accuracy_list)}),e)
             print("테스트 데이터 정확도:",np.mean(test_accuracy_list))
             print()
