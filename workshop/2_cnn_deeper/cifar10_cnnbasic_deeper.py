@@ -33,7 +33,7 @@ if __name__ == "__main__" :
         with tf.variable_scope(name) as scope:
             W_conv = tf.Variable(tf.truncated_normal(shape=[3, 3, in_ch, out_ch], stddev=0.01))
             b_conv = tf.Variable(tf.constant(0.1, shape=[out_ch]))
-            h_conv = tf.nn.relu(tf.nn.conv2d(X, W_conv, strides=[1, 1, 1, 1], padding='SAME') + b_conv)
+            h_conv = tf.nn.sigmoid(tf.nn.conv2d(X, W_conv, strides=[1, 1, 1, 1], padding='SAME') + b_conv)
         return h_conv
 
     h_conv1 = conv(x_image,3,64,"Conv1")
