@@ -70,7 +70,7 @@ if __name__ == "__main__" :
 # 4. 비용함수 정의
 #==========================================================
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=logits))
-    train_step = tf.train.AdamOptimizer(0.0001).minimize(loss)
+    train_step = tf.train.GradientDescentOptimizer(0.1).minimize(loss)
 
     # 정확도를 계산하는 연산.
     correct_prediction = tf.equal(tf.argmax(y_pred, 1), tf.argmax(y, 1))

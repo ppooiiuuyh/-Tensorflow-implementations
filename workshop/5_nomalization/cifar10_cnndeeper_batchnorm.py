@@ -1,6 +1,8 @@
 import tensorflow as tf
 import numpy as np
 from keras.datasets.cifar10 import load_data
+from tensorflow.contrib.layers import xavier_initializer_conv2d
+from tensorflow.contrib.layers import xavier_initializer
 
 
 if __name__ == "__main__" :
@@ -32,9 +34,8 @@ if __name__ == "__main__" :
 
     def conv(X, in_ch, out_ch, name):
         with tf.variable_scope(name) as scope:
-            W_conv = tf.Variable(tf.truncated_normal(shape=[3, 3, in_ch, out_ch], stddev=0.01))
-            b_conv = tf.Variable(tf.constant(0.1, shape=[out_ch]))
-            h_bn = tf.layers.batch_normalization(tf.nn.conv2d(X, W_conv, strides=[1, 1, 1, 1], padding='SAME') + b_conv, training=trainphase)
+            W_conv = tf.get_variable(name='weights', shape=[3, 3, in_ch, out_ch], initializer=xavier_initializer_conv2d())
+            h_bn = tf.layers.batch_normalization(tf.nn.conv2d(X, W_conv, strides=[1, 1, 1, 1], padding='SAME'), axis=1, training =trainphase)
             h_conv = tf.nn.relu(h_bn)
         return h_conv
 
@@ -58,18 +59,20 @@ if __name__ == "__main__" :
     h_conv10 = conv(h_conv9, 512, 512, "Conv10")
     h_conv10_pool = tf.nn.max_pool(h_conv10, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
+
     h_conv10_pool_flat = tf.reshape(h_conv10_pool, [-1, 1 * 1 * 512])
-    W_fc = tf.Variable(tf.truncated_normal(shape=[512, 10], stddev=0.01))
+    W_fc = tf.get_variable(name='weights_fc', shape=[512, 10], initializer=xavier_initializer())
     b_fc = tf.Variable(tf.constant(0.1, shape=[10]))
     logits = tf.matmul(h_conv10_pool_flat, W_fc) + b_fc
     y_pred = tf.nn.softmax(logits)
+
 
 
 #==========================================================
 # 4. 비용함수 정의
 #==========================================================
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=logits))
-    train_step = tf.train.AdamOptimizer(0.0001).minimize(loss)
+    train_step = tf.train.GradientDescentOptimizer(0.1).minimize(loss)
 
     # 정확도를 계산하는 연산.
     correct_prediction = tf.equal(tf.argmax(y_pred, 1), tf.argmax(y, 1))
@@ -108,8 +111,8 @@ if __name__ == "__main__" :
                 sess.run(train_step, feed_dict={x: batch_x, y: batch_y, trainphase : True})
 
                 #== logging
-                train_accuracy = accuracy.eval(feed_dict={x: batch_x, y: batch_y, trainphase : True})
-                loss_print = loss.eval(feed_dict={x: batch_x, y: batch_y, trainphase : True})
+                train_accuracy = accuracy.eval(feed_dict={x: batch_x, y: batch_y, trainphase : False})
+                loss_print = loss.eval(feed_dict={x: batch_x, y: batch_y, trainphase : False})
                 train_accuracy_list.append(train_accuracy)
                 loss_list.append(loss_print)
 

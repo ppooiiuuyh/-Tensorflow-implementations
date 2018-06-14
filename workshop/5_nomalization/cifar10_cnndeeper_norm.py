@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from keras.datasets.cifar10 import load_data
+from tensorflow.contrib.layers import xavier_initializer_conv2d
 
 
 if __name__ == "__main__" :
@@ -41,9 +42,8 @@ if __name__ == "__main__" :
 
     def conv(X, in_ch, out_ch, name):
         with tf.variable_scope(name) as scope:
-            W_conv = tf.Variable(tf.truncated_normal(shape=[3, 3, in_ch, out_ch], stddev=0.01))
+            W_conv = tf.get_variable(name='weights', shape=[3, 3, in_ch, out_ch],initializer=xavier_initializer_conv2d())
             b_conv = tf.Variable(tf.constant(0.1, shape=[out_ch]))
-            X = tf.layers.batch_normalization(X, training=self.trainphase)
             h_conv = tf.nn.relu(tf.nn.conv2d(X, W_conv, strides=[1, 1, 1, 1], padding='SAME') + b_conv)
         return h_conv
 
@@ -78,7 +78,7 @@ if __name__ == "__main__" :
 # 4. 비용함수 정의
 #==========================================================
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=logits))
-    train_step = tf.train.AdamOptimizer(0.0001).minimize(loss)
+    train_step = tf.train.GradientDescentOptimizer(0.1).minimize(loss)
 
     # 정확도를 계산하는 연산.
     correct_prediction = tf.equal(tf.argmax(y_pred, 1), tf.argmax(y, 1))
