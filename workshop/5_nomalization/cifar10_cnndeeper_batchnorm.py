@@ -23,7 +23,7 @@ if __name__ == "__main__" :
     y = tf.placeholder(tf.float32, shape=[None, 10])
 
     #batch norm 을위한 train pahse 정의
-    trainphase = tf.placeholer(tf.bool)
+    trainphase = tf.placeholder(tf.bool)
 
 #==========================================================
 # 3. 모델 정의
@@ -105,11 +105,11 @@ if __name__ == "__main__" :
                 batch_y = y_train_onehot[i*batch_size:(i+1)*batch_size]
 
                 #== train
-                sess.run(train_step, feed_dict={x: batch_x, y: batch_y})
+                sess.run(train_step, feed_dict={x: batch_x, y: batch_y, trainphase : True})
 
                 #== logging
-                train_accuracy = accuracy.eval(feed_dict={x: batch_x, y: batch_y})
-                loss_print = loss.eval(feed_dict={x: batch_x, y: batch_y})
+                train_accuracy = accuracy.eval(feed_dict={x: batch_x, y: batch_y, trainphase : True})
+                loss_print = loss.eval(feed_dict={x: batch_x, y: batch_y, trainphase : True})
                 train_accuracy_list.append(train_accuracy)
                 loss_list.append(loss_print)
 
@@ -129,7 +129,7 @@ if __name__ == "__main__" :
                 test_batch_y = y_test_onehot[i*test_batch_size:(i+1)*test_batch_size]
 
                 #== logging
-                test_accuracy = accuracy.eval(feed_dict={x: test_batch_x, y: test_batch_y})
+                test_accuracy = accuracy.eval(feed_dict={x: test_batch_x, y: test_batch_y , trainphase : False})
                 test_accuracy_list.append(test_accuracy)
             print("테스트 데이터 정확도:",np.mean(test_accuracy_list))
             print()
