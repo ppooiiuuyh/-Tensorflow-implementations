@@ -1,9 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from tensorflow.contrib.layers import xavier_initializer_conv2d
-from keras.initializers import he_normal
 from keras.datasets.cifar10 import load_data
-
 
 
 if __name__ == "__main__" :
@@ -11,6 +8,17 @@ if __name__ == "__main__" :
 # 1. CIFAR-10 데이터 다운로드 및 데이터 로드
 #==========================================================
     (x_train, y_train), (x_test, y_test) = load_data()
+
+    #imput normalization
+    x_train_zerocentered =  x_train - np.mean(x_train) #평균이 0에 가깝도록 한다
+    x_train = x_train_zerocentered/np.max(x_train_zerocentered)  #값의 범위 -1 ~ 1이 되도록 한다
+
+    print(np.mean(x_train))
+    print(x_train[0])
+
+    x_test_zerocentered = x_test - np.mean(x_test)
+    x_test = x_test_zerocentered/ np.max(x_test_zerocentered)
+
 
     #one hot encoding
     y_train_onehot = np.eye(10)[y_train]
@@ -33,9 +41,9 @@ if __name__ == "__main__" :
 
     def conv(X, in_ch, out_ch, name):
         with tf.variable_scope(name) as scope:
-            W_conv = tf.get_variable(name='weights', shape=[3, 3, in_ch, out_ch],
-                                     initializer= tf.truncated_normal_initializer(stddev=np.sqrt(2/in_ch)))
+            W_conv = tf.Variable(tf.truncated_normal(shape=[3, 3, in_ch, out_ch], stddev=0.01))
             b_conv = tf.Variable(tf.constant(0.1, shape=[out_ch]))
+            X = tf.layers.batch_normalization(X, training=self.trainphase)
             h_conv = tf.nn.relu(tf.nn.conv2d(X, W_conv, strides=[1, 1, 1, 1], padding='SAME') + b_conv)
         return h_conv
 

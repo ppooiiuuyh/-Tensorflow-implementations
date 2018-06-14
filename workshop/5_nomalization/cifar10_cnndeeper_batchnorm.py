@@ -1,9 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from tensorflow.contrib.layers import xavier_initializer_conv2d
-from keras.initializers import he_normal
 from keras.datasets.cifar10 import load_data
-
 
 
 if __name__ == "__main__" :
@@ -25,6 +22,8 @@ if __name__ == "__main__" :
     x = tf.placeholder(tf.float32, shape=[None, 32, 32, 3])
     y = tf.placeholder(tf.float32, shape=[None, 10])
 
+    #batch norm 을위한 train pahse 정의
+    trainphase = tf.placeholer(tf.bool)
 
 #==========================================================
 # 3. 모델 정의
@@ -33,10 +32,10 @@ if __name__ == "__main__" :
 
     def conv(X, in_ch, out_ch, name):
         with tf.variable_scope(name) as scope:
-            W_conv = tf.get_variable(name='weights', shape=[3, 3, in_ch, out_ch],
-                                     initializer= tf.truncated_normal_initializer(stddev=np.sqrt(2/in_ch)))
+            W_conv = tf.Variable(tf.truncated_normal(shape=[3, 3, in_ch, out_ch], stddev=0.01))
             b_conv = tf.Variable(tf.constant(0.1, shape=[out_ch]))
-            h_conv = tf.nn.relu(tf.nn.conv2d(X, W_conv, strides=[1, 1, 1, 1], padding='SAME') + b_conv)
+            h_bn = tf.layers.batch_normalization(tf.nn.conv2d(X, W_conv, strides=[1, 1, 1, 1], padding='SAME') + b_conv, training=trainphase)
+            h_conv = tf.nn.relu(h_bn)
         return h_conv
 
     h_conv1 = conv(x_image,3,64,"Conv1")
