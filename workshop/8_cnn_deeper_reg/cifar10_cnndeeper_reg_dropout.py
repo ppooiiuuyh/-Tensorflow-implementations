@@ -41,48 +41,56 @@ if __name__ == "__main__" :
             h_conv = tf.nn.relu(h_bn)
         return h_conv
 
-    h_conv1 = conv(x_image,3,64,"Conv1")
-    h_conv2 = conv(h_conv1,64,64,"Conv2")
-    h_conv2_pool = tf.nn.max_pool(h_conv2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+    with tf.variable_scope("block1") as scope:
+        h_conv1 = conv(x_image,3,64,"Conv1")
+        h_conv2 = conv(h_conv1,64,64,"Conv2")
+        h_conv2_pool = tf.nn.max_pool(h_conv2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
-    h_conv3 = conv(h_conv2_pool,64,128,"Conv3")
-    h_conv4 = conv(h_conv3, 128,128 , "Conv4")
-    h_conv4_pool = tf.nn.max_pool(h_conv4, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+    with tf.variable_scope("block2") as scope:
+        h_conv3 = conv(h_conv2_pool,64,128,"Conv3")
+        h_conv4 = conv(h_conv3, 128,128 , "Conv4")
+        h_conv4_pool = tf.nn.max_pool(h_conv4, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
-    h_conv5 = conv(h_conv4_pool, 128, 256, "Conv5")
-    h_conv6 = conv(h_conv5, 256, 256, "Conv6")
-    h_conv6_pool = tf.nn.max_pool(h_conv6, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+    with tf.variable_scope("block3") as scope:
+        h_conv5 = conv(h_conv4_pool, 128, 256, "Conv5")
+        h_conv6 = conv(h_conv5, 256, 256, "Conv6")
+        h_conv6_pool = tf.nn.max_pool(h_conv6, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
-    h_conv7 = conv(h_conv6_pool, 256, 512, "Conv7")
-    h_conv8 = conv(h_conv7, 512, 512, "Conv8")
-    h_conv8_pool = tf.nn.max_pool(h_conv8, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+    with tf.variable_scope("block4") as scope:
+        h_conv7 = conv(h_conv6_pool, 256, 512, "Conv7")
+        h_conv8 = conv(h_conv7, 512, 512, "Conv8")
+        h_conv8_pool = tf.nn.max_pool(h_conv8, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
-    h_conv9 = conv(h_conv8_pool, 512, 512, "Conv9")
-    h_conv10 = conv(h_conv9, 512, 512, "Conv10")
-    h_conv10_pool = tf.nn.max_pool(h_conv10, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+    with tf.variable_scope("block5") as scope:
+        h_conv9 = conv(h_conv8_pool, 512, 512, "Conv9")
+        h_conv10 = conv(h_conv9, 512, 512, "Conv10")
+        h_conv10_pool = tf.nn.max_pool(h_conv10, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
-
-    h_conv10_pool_flat = tf.reshape(h_conv10_pool, [-1, 1 * 1 * 512])
-    h_conv10_pool_flat_dropout = tf.nn.dropout(h_conv10_pool_flat , keep_prob=keepprob)
-    W_fc = tf.get_variable(name='weights', shape=[512, 10], initializer=xavier_initializer())
-    b_fc = tf.Variable(tf.constant(0.1, shape=[10]))
-    logits = tf.matmul(h_conv10_pool_flat, W_fc) + b_fc
-    y_pred = tf.nn.softmax(logits)
+    with tf.variable_scope("fclayer") as scope:
+        h_conv10_pool_flat = tf.reshape(h_conv10_pool, [-1, 1 * 1 * 512])
+        h_conv10_pool_flat_dropout = tf.nn.dropout(h_conv10_pool_flat , keep_prob=keepprob)
+        W_fc = tf.get_variable(name='weights', shape=[512, 10], initializer=xavier_initializer())
+        b_fc = tf.Variable(tf.constant(0.1, shape=[10]))
+        logits = tf.matmul(h_conv10_pool_flat_dropout, W_fc) + b_fc
+        y_pred = tf.nn.softmax(logits)
 
 
 
 #==========================================================
 # 4. 비용함수 정의
 #==========================================================
-    vars = tf.trainable_variables()
-    lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in vars]) * 0.0005
+    with tf.name_scope("l2_loss") as scope :
+        vars = tf.trainable_variables()
+        lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in vars]) * 0.0005
 
-    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=logits)) + lossL2
-    train_step = tf.train.AdamOptimizer(0.0001).minimize(loss)
+    with tf.name_scope("trainer") as scope:
+        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=logits)) + lossL2
+        train_step = tf.train.AdamOptimizer(0.0001).minimize(loss)
 
     # 정확도를 계산하는 연산.
-    correct_prediction = tf.equal(tf.argmax(y_pred, 1), tf.argmax(y, 1))
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    with tf.name_scope("evaluation") as scope:
+        correct_prediction = tf.equal(tf.argmax(y_pred, 1), tf.argmax(y, 1))
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 
 #==========================================================

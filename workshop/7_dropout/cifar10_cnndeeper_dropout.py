@@ -66,7 +66,7 @@ if __name__ == "__main__" :
     h_conv10_pool_flat_dropout = tf.nn.dropout(h_conv10_pool_flat , keep_prob=keepprob)
     W_fc = tf.get_variable(name='weights', shape=[512, 10], initializer=xavier_initializer())
     b_fc = tf.Variable(tf.constant(0.1, shape=[10]))
-    logits = tf.matmul(h_conv10_pool_flat, W_fc) + b_fc
+    logits = tf.matmul(h_conv10_pool_flat_dropout, W_fc) + b_fc
     y_pred = tf.nn.softmax(logits)
 
 
