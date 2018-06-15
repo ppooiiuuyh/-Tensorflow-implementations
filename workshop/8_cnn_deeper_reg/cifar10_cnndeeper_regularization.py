@@ -72,9 +72,9 @@ if __name__ == "__main__" :
 # 4. 비용함수 정의
 #==========================================================
     vars   = tf.trainable_variables()
-    lossL2 = tf.add_n([ tf.nn.l2_loss(v) for v in vars ]) * 0.001
+    lossL2 = tf.add_n([ tf.nn.l2_loss(v) for v in vars ]) * 0.0005
 
-    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=logits))
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=logits)) + lossL2
     train_step = tf.train.AdamOptimizer(0.0001).minimize(loss)
 
     # 정확도를 계산하는 연산.

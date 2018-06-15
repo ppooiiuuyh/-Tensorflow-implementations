@@ -35,7 +35,7 @@ if __name__ == "__main__" :
     def conv(X, in_ch, out_ch, name):
         with tf.variable_scope(name) as scope:
             W_conv = tf.get_variable(name='weights', shape=[3, 3, in_ch, out_ch], initializer=xavier_initializer_conv2d())
-            h_bn = tf.layers.batch_normalization(tf.nn.conv2d(X, W_conv, strides=[1, 1, 1, 1], padding='SAME'), axis=1, training =trainphase)
+            h_bn = tf.layers.batch_normalization(tf.nn.conv2d(X, W_conv, strides=[1, 1, 1, 1], padding='SAME'), training =trainphase)
             h_conv = tf.nn.relu(h_bn)
         return h_conv
 
