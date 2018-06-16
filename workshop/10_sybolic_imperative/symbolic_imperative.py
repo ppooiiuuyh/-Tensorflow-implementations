@@ -8,9 +8,11 @@ if __name__ == "__main__" :
     Var = tf.Variable(3)
     print("tf.Variable(3): ",Var)
 
+    #init graph
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
 
+    #run graph
     print("output: ", sess.run(Var))
 
 
