@@ -87,7 +87,10 @@ if __name__ == "__main__" :
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=logits)) + lossL2
         train_step = tf.train.AdamOptimizer(0.0001).minimize(loss)
 
-
+    # == 정확도를 계산하는 연산.
+    with tf.name_scope("evaluation") as scope:
+        correct_prediction = tf.equal(tf.argmax(y_pred, 1), tf.argmax(y, 1))
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 #=========================================================
 # Option. tensorboard
@@ -122,10 +125,6 @@ if __name__ == "__main__" :
             train_accuracy_list = []
             for i in range(int(total_size / batch_size)):
 
-                # == 정확도를 계산하는 연산.
-                with tf.name_scope("evaluation") as scope:
-                    correct_prediction = tf.equal(tf.argmax(y_pred, 1), tf.argmax(y, 1))
-                    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
                 #== batch load
                 batch_x = x_train[i*batch_size:(i+1)*batch_size]
