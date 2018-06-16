@@ -98,7 +98,7 @@ if __name__ == "__main__" :
 #----------------------------------
 # 5.1 세션, 변수 초기화
 #----------------------------------
-    num_ensembles = 2
+    num_ensembles = 5
     sess_list  = [ tf.Session() for i in range(num_ensembles)]
     for i in range(num_ensembles) : sess_list[i].run(tf.global_variables_initializer())
 
@@ -146,6 +146,7 @@ if __name__ == "__main__" :
                                                                    y: test_batch_y, trainphase : True , keepprob:0.7}))
             test_accuracy_list.append(test_accuracy)
 
+        print("반복[epoch] : ",e)
         for ens in range(num_ensembles) :
            print("[Ens:",ens,"] 테스트 데이터 정확도:",np.mean(test_accuracy_list[ens]))
         print()
