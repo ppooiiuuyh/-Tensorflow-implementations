@@ -10,7 +10,7 @@ if __name__ == "__main__" :
 
     # make session
     sess = tf.Session()
-    #print("run grpah without init : ",sess.run(Var))
+    print("run grpah without init : ",sess.run(Var))
 
     # init graph
     sess.run(tf.global_variables_initializer())
