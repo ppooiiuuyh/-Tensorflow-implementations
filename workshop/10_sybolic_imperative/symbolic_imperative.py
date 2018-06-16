@@ -1,5 +1,22 @@
+import tensorflow as tf
 
 if __name__ == "__main__" :
+#=================================
+# 2. Symbollic
+#=================================
+    #variable
+    Var = tf.Variable(3)
+    print("tf.Variable(3): ",Var)
+
+    sess = tf.Session()
+    sess.run(tf.global_variables_initializer())
+
+    print("output: ", sess.run(Var))
+
+
+
+
+
 #================================
 # 1. imperative
 #================================
@@ -12,3 +29,5 @@ if __name__ == "__main__" :
     #variable without allocation
     var2
     print(var2)
+
+
