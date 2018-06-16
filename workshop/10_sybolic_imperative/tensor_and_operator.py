@@ -1,9 +1,11 @@
 import tensorflow as tf
+import numpy as np
+import math
 
 if __name__ == "__main__":
 
-    tf.placeholder()
+    with tf.Session() as sess :
 
-    tf.Variable()
-
-    tf.constant()
+        a = 3
+        b = tf.Variable(3)
+        print(b.eval())

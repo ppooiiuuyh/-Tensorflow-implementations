@@ -34,11 +34,19 @@ if __name__ == "__main__" :
 #==========================================================
     x_image = x
 
+    #custom relu activation function
+    '''
+    def my_relu(X):
+        return np.maximum(0,X)
+    '''
+    def my_relu(X):
+        return tf.maximum(X,0)
+
     def conv(X, in_ch, out_ch, name):
         with tf.variable_scope(name) as scope:
             W_conv = tf.get_variable(name='weights', shape=[3, 3, in_ch, out_ch], initializer=xavier_initializer_conv2d())
             h_bn = tf.layers.batch_normalization(tf.nn.conv2d(X, W_conv, strides=[1, 1, 1, 1], padding='SAME'), training =trainphase)
-            h_conv = tf.nn.relu(h_bn)
+            h_conv = my_relu(h_bn)
         return h_conv
 
     with tf.variable_scope("block1") as scope:
