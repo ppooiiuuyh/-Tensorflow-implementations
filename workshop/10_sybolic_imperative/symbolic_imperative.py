@@ -4,6 +4,7 @@ if __name__ == "__main__" :
 #=================================
 # 2. Symbollic
 #=================================
+
     #variable
     Var = tf.Variable(3)
     print("tf.Variable(3): ",Var)
