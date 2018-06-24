@@ -19,7 +19,7 @@ if __name__ == "__main__" :
     y_test_onehot = np.squeeze(y_test_onehot) # (10000,1,10) -> (10000,10)
 
 #==========================================================
-# 2. 인풋, 아웃풋데이터를 입력받기 위한 플레이스홀더 정의
+# 2. 인풋, 레이블을 입력받기 위한 플레이스홀더 정의
 #==========================================================
     x = tf.placeholder(tf.float32, shape=[None, 32, 32, 3])
     y = tf.placeholder(tf.float32, shape=[None, 10])
@@ -34,7 +34,7 @@ if __name__ == "__main__" :
 #==========================================================
     x_image = x
 
-    def conv(X, in_ch, out_ch, name):
+    def conv(X, in_ch, out_ch, name,trainpahse):
         with tf.variable_scope(name) as scope:
             W_conv = tf.get_variable(name='weights', shape=[3, 3, in_ch, out_ch], initializer=xavier_initializer_conv2d())
             h_bn = tf.layers.batch_normalization(tf.nn.conv2d(X, W_conv, strides=[1, 1, 1, 1], padding='SAME'), training =trainphase)
@@ -66,6 +66,7 @@ if __name__ == "__main__" :
         h_conv10 = conv(h_conv9, 512, 512, "Conv10")
         h_conv10_pool = tf.nn.max_pool(h_conv10, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
+    #fc layer
     with tf.variable_scope("fclayer") as scope:
         h_conv10_pool_flat = tf.reshape(h_conv10_pool, [-1, 1 * 1 * 512])
         h_conv10_pool_flat_dropout = tf.nn.dropout(h_conv10_pool_flat , keep_prob=keepprob)
@@ -100,6 +101,11 @@ if __name__ == "__main__" :
         sess.run(tf.global_variables_initializer())
         writer = tf.summary.FileWriter("./board/sample",sess.graph)
 
+        # == 정확도를 계산하는 연산.
+        with tf.name_scope("evaluation") as scope:
+            correct_prediction = tf.equal(tf.argmax(y_pred, 1), tf.argmax(y, 1))
+            accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
     #---------------------------------
     # 5.2 Training loop
     #---------------------------------
@@ -115,10 +121,7 @@ if __name__ == "__main__" :
             train_accuracy_list = []
             for i in range(int(total_size / batch_size)):
 
-                # == 정확도를 계산하는 연산.
-                with tf.name_scope("evaluation") as scope:
-                    correct_prediction = tf.equal(tf.argmax(y_pred, 1), tf.argmax(y, 1))
-                    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
 
                 #== batch load
                 batch_x = x_train[i*batch_size:(i+1)*batch_size]

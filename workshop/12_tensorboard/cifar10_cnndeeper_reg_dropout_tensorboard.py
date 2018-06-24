@@ -139,13 +139,13 @@ if __name__ == "__main__" :
                 sess.run(train_step, feed_dict={x: batch_x, y: batch_y, trainphase : True , keepprob:0.7})
 
                 #== logging
-                train_accuracy = accuracy.eval(feed_dict={x: batch_x, y: batch_y, trainphase : True , keepprob:1})
-                loss_print = loss.eval(feed_dict={x: batch_x, y: batch_y, trainphase : True , keepprob:1})
+                train_accuracy = accuracy.eval(feed_dict={x: batch_x, y: batch_y, trainphase : False , keepprob:1})
+                loss_print = loss.eval(feed_dict={x: batch_x, y: batch_y, trainphase : False , keepprob:1})
                 train_accuracy_list.append(train_accuracy)
                 loss_list.append(loss_print)
 
                 writer_train.add_summary(sess.run(merged, feed_dict={accuracy_hist: np.mean(train_accuracy_list),
-                                                                     x: batch_x, y: batch_y, trainphase : True , keepprob:1}),
+                                                                     x: batch_x, y: batch_y, trainphase : False , keepprob:1}),
                                                                          global_step=e)
             print("반복(Epoch):", e, "트레이닝 데이터 정확도:", np.mean(train_accuracy_list), "손실 함수(loss):",np.mean(loss_list))
 
@@ -163,7 +163,7 @@ if __name__ == "__main__" :
                 test_batch_y = y_test_onehot[i*test_batch_size:(i+1)*test_batch_size]
 
                 #== logging
-                test_accuracy = accuracy.eval(feed_dict={x: test_batch_x, y: test_batch_y , trainphase : True, keepprob:1})
+                test_accuracy = accuracy.eval(feed_dict={x: test_batch_x, y: test_batch_y , trainphase : False, keepprob:1})
                 test_accuracy_list.append(test_accuracy)
 
                 writer_train.add_summary(sess.run(accuracy_hist_merged, feed_dict={accuracy_hist: np.mean(train_accuracy_list)}, global_step=e))
