@@ -46,12 +46,13 @@ class Trainer:
             lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in vars]) * 0.0005
 
         with tf.name_scope("tendancy_loss") as scope:
-            y_prevs = tf.slice(self.y,[0,0],[self.batchSize-1,1])
+            y_prevs = tf.slice(self.Y,[0,0],[self.batchSize-1,1])
             ypred_cur = tf.slice(self.model.logits_relu,[1,0],[self.batchSize-1,1])
             tloss = tf.reduce_mean(tf.square(y_prevs-ypred_cur))
 
         with tf.name_scope("trainer") as scope:
-            loss = tf.reduce_mean(tf.losses.mean_squared_error(labels= self.Y,predictions=self.model.logits_relu))+tloss#+lossL2
+            self.mse = tf.losses.mean_squared_error(labels= self.Y,predictions=self.model.logits_relu)
+            loss = tf.reduce_mean(self.mse)+tloss#+lossL2
             #loss = tf.reduce_mean(tf.reduce_sum(tf.square(self.Y- self.model.logits_relu),reduction_indices=1))+lossL2
             train_step = tf.train.AdamOptimizer(self.lr).minimize(loss)
 
@@ -94,8 +95,8 @@ class Trainer:
             prediction_hist_summary = tf.summary.scalar('pred_hist',prediction_hist)
             prediction_hist_merged = tf.summary.merge([prediction_hist_summary])
 
-            writer_pred = tf.summary.FileWriter("./board_crw/pred", sess.graph)
-            writer_pred_label = tf.summary.FileWriter("./board_crw/pred_label", sess.graph)
+            writer_pred = tf.summary.FileWriter("./board_crw_tl/pred", sess.graph)
+            writer_pred_label = tf.summary.FileWriter("./board_crw_tl/pred_label", sess.graph)
 
 
         #===============================================
@@ -112,6 +113,7 @@ class Trainer:
                 #self.testset = np.array(self.testset)[p]
 
                 loss_list = []
+                tloss_list = []
                 train_accuracy_list = []
                 for i in range(int(len(self.trainset) / self.batchSize)):
                     # == batch load
@@ -128,12 +130,11 @@ class Trainer:
 
 
                     # == logging
-                    loss_print = loss.eval(feed_dict={self.model.X: batch_x,self.model.SKY:batch_sky,self.model.RAIN:batch_rain, self.Y: batch_y, self.model.trainphase: True})
+                    loss_print,tloss_print,m = sess.run([loss,tloss],feed_dict={self.model.X: batch_x,self.model.SKY:batch_sky,self.model.RAIN:batch_rain, self.Y: batch_y, self.model.trainphase: True})
                     loss_list.append(loss_print)
-
-
+                    tloss_list.append(tloss_print)
                 print("반복(Epoch):", e, "트레이닝 데이터 정확도:", np.mean(train_accuracy_list), "손실 함수(loss):",
-                      np.mean(loss_list))
+                      np.mean(loss_list),"tloss:",np.mean(tloss_list))
 
 
 
@@ -145,8 +146,8 @@ class Trainer:
                 test_accuracy_s_list = []
                 histloginterval = 2000
                 if(e%histloginterval == 0):
-                    writer_pred = tf.summary.FileWriter("./board_crw/pred"+str(e), sess.graph)
-                    writer_pred_label = tf.summary.FileWriter("./board_crw/pred_label"+str(e), sess.graph)
+                    writer_pred = tf.summary.FileWriter("./board_crw_tl/pred"+str(e), sess.graph)
+                    writer_pred_label = tf.summary.FileWriter("./board_crw_tl/pred_label"+str(e), sess.graph)
 
                 for i in range(int(len(self.testset) / self.batchSize_test)):
                     # == test batch load
@@ -184,6 +185,7 @@ class Trainer:
                 writer_acc_loss.flush()
                 print("테스트 데이터 정확도:", np.mean(test_accuracy_list),"손실 함수(loss):", np.mean(loss_list))
                 print()
+
 
 def test():
     t = Trainer()
