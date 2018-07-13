@@ -45,20 +45,22 @@ class Trainer:
             vars = tf.trainable_variables()
             lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in vars]) * 0.0005
 
-        with tf.name_scope("tendancy_loss") as scope:
-            y_prevs = tf.slice(self.Y,[0,0],[self.batchSize-1,1])
-            ypred_cur = tf.slice(self.model.logits_relu,[1,0],[self.batchSize-1,1])
-            tloss = tf.reduce_mean(tf.square(y_prevs-ypred_cur))
+        with tf.name_scope("tloss") as scope:
+            y_t = tf.slice(self.Y, [0, 0], [self.batchSize - 1, 1]) - tf.slice(self.Y, [1, 0], [self.batchSize - 1, 1])
+            ypred_t = tf.slice(self.model.logits_relu, [0, 0], [self.batchSize - 1, 1]) - tf.slice(self.model.logits_relu, [1, 0],
+                                                                                              [self.batchSize - 1, 1])
+
+            tloss = 0.05 * tf.reduce_mean(tf.square(y_t - ypred_t))
 
         with tf.name_scope("trainer") as scope:
             self.mse = tf.losses.mean_squared_error(labels= self.Y,predictions=self.model.logits_relu)
-            loss = tf.reduce_mean(self.mse)+tloss#+lossL2
+            loss = tf.reduce_mean(self.mse)+1*tloss#+lossL2
             #loss = tf.reduce_mean(tf.reduce_sum(tf.square(self.Y- self.model.logits_relu),reduction_indices=1))+lossL2
             train_step = tf.train.AdamOptimizer(self.lr).minimize(loss)
 
         with tf.name_scope("evaluation") as scope:
-            correct_prediction = tf.reduce_sum(((self.Y)-(self.model.logits)),reduction_indices=1)
-            correct_prediction_square = tf.reduce_sum(tf.square((self.Y) - (self.model.logits)), reduction_indices=1)
+            correct_prediction = tf.reduce_sum(((self.Y)-(self.model.logits_relu)),reduction_indices=1)
+            correct_prediction_square = tf.reduce_sum(tf.square((self.Y) - (self.model.logits_relu)), reduction_indices=1)
             #accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 
@@ -89,14 +91,14 @@ class Trainer:
 
             loss_hist_summary = tf.summary.scalar('training_loss_hist', loss)
             merged = tf.summary.merge_all()
-            writer_acc_loss = tf.summary.FileWriter("./board_crw/acc_loss", sess.graph)
+            writer_acc_loss = tf.summary.FileWriter("./board_crw_tl2/acc_loss", sess.graph)
 
             prediction_hist = tf.placeholder(tf.float32)
             prediction_hist_summary = tf.summary.scalar('pred_hist',prediction_hist)
             prediction_hist_merged = tf.summary.merge([prediction_hist_summary])
 
-            writer_pred = tf.summary.FileWriter("./board_crw_tl/pred", sess.graph)
-            writer_pred_label = tf.summary.FileWriter("./board_crw_tl/pred_label", sess.graph)
+            writer_pred = tf.summary.FileWriter("./board_crw_tl2/pred", sess.graph)
+            writer_pred_label = tf.summary.FileWriter("./board_crw_tl2/pred_label", sess.graph)
 
 
         #===============================================
@@ -108,6 +110,7 @@ class Trainer:
             # .........................
                 p = np.random.permutation(len(self.trainset))
                 self.trainset = np.array(self.trainset)[p]
+
 
                 #p = np.random.permutation(len(self.testset))
                 #self.testset = np.array(self.testset)[p]
@@ -126,11 +129,11 @@ class Trainer:
                         lr_value = 0.0001
                     #elif (5000 < e and e < 10000):      lr_value = 0.00001
 
-                    sess.run(train_step, feed_dict={self.model.X: batch_x,self.model.SKY:batch_sky,self.model.RAIN:batch_rain, self.Y: batch_y, self.model.trainphase: True, self.lr: lr_value})
+                    sess.run(train_step, feed_dict={self.model.X: batch_x,self.model.SKY:batch_sky,self.model.RAIN:batch_rain, self.Y: batch_y, self.model.trainphase: False, self.lr: lr_value})
 
 
                     # == logging
-                    loss_print,tloss_print,m = sess.run([loss,tloss],feed_dict={self.model.X: batch_x,self.model.SKY:batch_sky,self.model.RAIN:batch_rain, self.Y: batch_y, self.model.trainphase: True})
+                    loss_print,tloss_print = sess.run([loss,tloss],feed_dict={self.model.X: batch_x,self.model.SKY:batch_sky,self.model.RAIN:batch_rain, self.Y: batch_y, self.model.trainphase: False})
                     loss_list.append(loss_print)
                     tloss_list.append(tloss_print)
                 print("반복(Epoch):", e, "트레이닝 데이터 정확도:", np.mean(train_accuracy_list), "손실 함수(loss):",
@@ -144,10 +147,14 @@ class Trainer:
             # 매epoch 마다 test 데이터셋에 대한 정확도와 loss를 출력.
                 test_accuracy_list = []
                 test_accuracy_s_list = []
+
+                loss_list = []
+                tloss_list = []
+
                 histloginterval = 2000
                 if(e%histloginterval == 0):
-                    writer_pred = tf.summary.FileWriter("./board_crw_tl/pred"+str(e), sess.graph)
-                    writer_pred_label = tf.summary.FileWriter("./board_crw_tl/pred_label"+str(e), sess.graph)
+                    writer_pred = tf.summary.FileWriter("./board_crw_tl2/pred"+str(e), sess.graph)
+                    writer_pred_label = tf.summary.FileWriter("./board_crw_tl2/pred_label"+str(e), sess.graph)
 
                 for i in range(int(len(self.testset) / self.batchSize_test)):
                     # == test batch load
@@ -161,14 +168,22 @@ class Trainer:
                                                                                                          -1)
 
                     # == logging
-                    test_accuracy,test_accuracy_square = sess.run([correct_prediction,correct_prediction_square],feed_dict={self.model.X: test_batch_x,self.model.SKY:test_batch_sky,self.model.RAIN:test_batch_rain, self.Y: test_batch_y, self.model.trainphase: True})
+                    loss_print, tloss_print = sess.run([loss, tloss],
+                                                       feed_dict={self.model.X: test_batch_x, self.model.SKY: test_batch_sky,
+                                                                  self.model.RAIN: test_batch_rain, self.Y: test_batch_y,
+                                                                  self.model.trainphase: False})
+                    loss_list.append(loss_print)
+                    tloss_list.append(tloss_print)
+
+                    # == logging
+                    test_accuracy,test_accuracy_square = sess.run([correct_prediction,correct_prediction_square],feed_dict={self.model.X: test_batch_x,self.model.SKY:test_batch_sky,self.model.RAIN:test_batch_rain, self.Y: test_batch_y, self.model.trainphase: False})
                     test_accuracy_list.append(test_accuracy)
                     test_accuracy_s_list.append(test_accuracy_square)
 
 
                     if(e%histloginterval == 0):
                         for o in range(len(test_batch_y)):
-                            output = self.model.logits_relu.eval(feed_dict={self.model.X: test_batch_x,self.model.SKY:test_batch_sky,self.model.RAIN:test_batch_rain, self.Y: test_batch_y, self.model.trainphase: True})
+                            output = self.model.logits_relu.eval(feed_dict={self.model.X: test_batch_x,self.model.SKY:test_batch_sky,self.model.RAIN:test_batch_rain, self.Y: test_batch_y, self.model.trainphase: False})
                             output_scalar = (output[o])
                             print( "정답: ", (test_batch_y[o]),"출력: ",output_scalar, "step: ",o+i*self.batchSize_test)
                             writer_pred.add_summary(prediction_hist_merged.eval(feed_dict={prediction_hist:float(output_scalar)}),global_step=o+i*self.batchSize_test)
@@ -180,10 +195,10 @@ class Trainer:
 
                 summary = merged.eval(
                     feed_dict={self.model.X: batch_x, self.model.SKY: batch_sky, self.model.RAIN: batch_rain, self.Y: batch_y,
-                               self.model.trainphase: True, accuracy_hist:np.mean(test_accuracy_list),accuracy_s_hist:np.mean(test_accuracy_s_list)})
+                               self.model.trainphase: False, accuracy_hist:np.mean(test_accuracy_list),accuracy_s_hist:np.mean(test_accuracy_s_list)})
                 writer_acc_loss.add_summary(summary, global_step=e)
                 writer_acc_loss.flush()
-                print("테스트 데이터 정확도:", np.mean(test_accuracy_list),"손실 함수(loss):", np.mean(loss_list))
+                print("테스트 데이터 정확도:", np.mean(test_accuracy_list),"손실 함수(loss):",np.mean(loss_list),"tloss:",np.mean(tloss_list))
                 print()
 
 

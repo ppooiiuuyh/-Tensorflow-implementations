@@ -83,8 +83,8 @@ class Model:
         #H = self.linear(H,100,100,"L8")
         #H = self.linear(H,100,100,"L9")
 
-        H = self.linear(H,num_unit,300,"Llast")
-        self.output = self.linear(H,300,1,"output",active_f=None)
+        H = self.linear(H,num_unit,int(num_unit/3*2),"Llast")
+        self.output = self.linear(H,int(num_unit/3*2),1,"output",active_f=None)
         return self.output
 
 def modelTester():

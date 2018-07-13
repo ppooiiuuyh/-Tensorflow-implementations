@@ -50,7 +50,7 @@ class Dataset_loader:
         self.sky = np.array(pd.read_csv(skydir))[:,5:].reshape(-1,1).astype(float)
         #self.sky = np.array(pd.read_csv(skydir))[:,3:].astype(float)
 
-        self.duration = 6
+        self.duration = 24
         self.maxGen = maxGen
         self.numClasses = numClasses
 
@@ -65,10 +65,12 @@ class Dataset_loader:
         self.testset  =[]
         self.split_dataset()
 
+        '''
         dist = [0 for d in range(10)]
         for d in self.dataset:
             dist[d.getScalarLabel(10)] +=1
         print(dist)
+        '''
 
     def genDataset(self):
         dataset = []
@@ -79,7 +81,7 @@ class Dataset_loader:
             sky_forecast = self.sky[i-1]
             pv_label = self.pv_copy[i,1]
 
-            if(pv_label != 0 and pv_label <1490):
+            if(pv_label >= 0 ):#and pv_label <1490):
                 dataset.append(Data(cur_date,pv_chunk,rain_forecast,sky_forecast,pv_label,self.maxGen))
         return dataset
 
@@ -106,14 +108,21 @@ class Dataset_loader:
                 self.trainset.append(d)
             else:
                 self.testset.append(d)
-
+    '''
     def split_dataset(self):
         for e,d in enumerate(self.dataset):
             if(e<len(self.dataset)*self.trainset_ratio):
                 self.trainset.append(d)
             else:
                 self.testset.append(d)
+    '''
 
+    def split_dataset(self):
+        for e,d in enumerate(self.dataset):
+            if(e<len(self.dataset)-2000):
+                self.trainset.append(d)
+            else:
+                self.testset.append(d)
 
 
 
