@@ -7,13 +7,13 @@ class Trainer:
     def __init__(self):
         #parameters
         self.totalEpoch = 8000
-        self.batchSize = 128
-        self.batchSize_test = 128
+        self.batchSize = 12
+        self.batchSize_test = 12
 
 
         #dataset
         self.dataset_loader = Dataset_loader(pvdir = "./data/pv_2015_2016_gy_processed.csv",duration_hour =6,attList=[5,6,7,8,9])
-        self.trainset,self.testset = self.dataset_loader.getDataset(shuffle = True)
+        self.trainset,self.testset = self.dataset_loader.getDataset(shuffle = False)
 
         print(len(self.trainset))
         print(len(self.testset))
@@ -108,8 +108,15 @@ class Trainer:
         # 3.2. train loop
         #===============================================
             for e in range(self.totalEpoch):
-                p = np.random.permutation(len(self.trainset))
-                self.trainset = np.array(self.trainset)[p]
+            # ...........................
+            # shuffle trainset
+            # ...........................
+                p = np.random.permutation(int(len(self.trainset)/self.batchSize))
+                p2 = []
+                for p_ in p:
+                    for i in range(self.batchSize):
+                       p2.append(p_ * self.batchSize + i)
+                self.trainset = np.array(self.trainset)[p2]
             # ..........................
             # 3.2.1 학습
             # .........................

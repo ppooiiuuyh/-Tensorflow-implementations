@@ -111,7 +111,7 @@ class Model_CNN:
 
         num_unit = 300
         H = self.linear(self.flatten,self.flatten.shape[1],num_unit,'L1')
-        #H = self.linear(H,num_unit,num_unit,"L2")
+        H = self.linear(H,num_unit,num_unit,"L2")
         #H = self.linear(H,num_unit,num_unit,"L3")
         #H = self.linear(H, num_unit, num_unit, "L4")
         #H = self.linear(H, num_unit, num_unit, "L5")

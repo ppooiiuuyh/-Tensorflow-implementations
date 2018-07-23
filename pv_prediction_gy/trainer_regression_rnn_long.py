@@ -104,10 +104,19 @@ class Trainer:
         # 3.2. train loop
         #===============================================
             for e in range(self.totalEpoch):
+            # ...........................
+            # shuffle trainset
+            # ...........................
+                p = np.random.permutation(int(len(self.trainset) / self.batchSize))
+                p2 = []
+                for p_ in p:
+                    for i in range(self.batchSize):
+                        p2.append(p_ * self.batchSize + i)
+                self.trainset = np.array(self.trainset)[p2]
+
             # ..........................
             # 3.2.1 학습
             # .........................
-
                 loss_list = []
                 tloss_list = []
                 train_accuracy_list = []

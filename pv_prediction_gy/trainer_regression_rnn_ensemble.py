@@ -2,35 +2,34 @@ import tensorflow as tf
 import numpy as np
 from dataset_loader import Dataset_loader
 from model_rnn_regression import Model_RNN
-from tensorflow.contrib.layers import xavier_initializer
-
 
 class Trainer:
     def __init__(self):
         #parameters
         self.totalEpoch = 8000
-        self.batchSize = 128
-        self.batchSize_test = 128
+        self.batchSize = 12
+        self.batchSize_test = 12
 
 
         #dataset
-        self.dataset_loader = Dataset_loader(pvdir = "./data/pv_2015_2016_gy_processed.csv",duration_hour =6,duration_hour_long=24*21)
-        self.trainset,self.testset = self.dataset_loader.getDataset(shuffle = True)
-
+        self.dataset_loader = Dataset_loader(pvdir = "./data/pv_2015_2016_gy_processed.csv",duration_hour =6,attList=[5,6,7,8,9])
+        self.trainset,self.testset = self.dataset_loader.getDataset(shuffle = False)
 
         print(len(self.trainset))
         print(len(self.testset))
 
         #model tensor :
         self.numClasses = 1
-        self.rnn = Model_RNN(input_dim = self.dataset_loader.num_attribute,output_dim = self.numClasses,duration=self.dataset_loader.duration,modelname="shortRNN")
-        self.rnn_long = Model_RNN(input_dim = self.dataset_loader.num_attribute_long,output_dim = self.numClasses,duration=self.dataset_loader.duration_long,modelname="longRNN")
-        self.concated_features = tf.concat([self.rnn.output_features,self.rnn_long.output_features],1)
-        print(self.concated_features)
 
-        self.W = tf.get_variable(name ='weights',shape=[self.concated_features.shape[1],1], initializer=xavier_initializer())
-        self.model_logits = tf.matmul(self.concated_features,self.W)
-        self.model_logits_relu = tf.nn.relu(self.model_logits)
+        self.nummodels = 5
+        self.X = tf.placeholder(tf.float32, shape=[None, self.dataset_loader.duration, self.dataset_loader.num_attribute])  # None,step,input
+        models_logit = []
+        for i in range(self.nummodels):
+            models_logit.append(Model_RNN(input_dim = self.dataset_loader.num_attribute,output_dim = self.numClasses,duration=self.dataset_loader.duration,modelname=str(i), X = self.X).logits)
+
+        models_logit = tf.concat([models_logit],axis=1)
+        self.ensembled_logit = tf.reduce_mean(models_logit,axis= 0)
+        self.ensembled_logit_relu = tf.nn.relu(self.ensembled_logit)
         self.Y = tf.placeholder(tf.float32, shape=[None,1])
 
 
@@ -53,22 +52,26 @@ class Trainer:
 
         with tf.name_scope("tendancy_loss") as scope:
             y_t = tf.slice(self.Y,[0,0],[self.batchSize-1,1]) - tf.slice(self.Y,[1,0],[self.batchSize-1,1])
-            ypred_t = tf.slice(self.model_logits, [0, 0], [self.batchSize - 1, 1]) - tf.slice(self.model_logits, [1, 0],
+            ypred_t = tf.slice(self.ensembled_logit, [0, 0], [self.batchSize - 1, 1]) - tf.slice(self.ensembled_logit, [1, 0],
                                                                                [self.batchSize - 1, 1])
             tlossrate = 0
             tloss = tf.reduce_mean(tf.abs(y_t-ypred_t))
 
         with tf.name_scope("trainer") as scope:
-            loss = tf.reduce_mean(tf.losses.mean_squared_error(labels= self.Y,predictions=self.model_logits))
+            loss = tf.reduce_mean(tf.losses.mean_squared_error(labels= self.Y,predictions=self.ensembled_logit))
             #loss = tf.reduce_mean(tf.reduce_sum(tf.square(self.Y- self.model.logits_relu),reduction_indices=1))+lossL2
             train_step = tf.train.AdamOptimizer(0.0001).minimize(loss + tlossrate * tloss)  # +lossL2)
 
         with tf.name_scope("evaluation") as scope:
+
+            correct_prediction = tf.squeeze(tf.reduce_mean( (tf.abs((self.Y) - (self.ensembled_logit_relu)) / (self.Y + self.ensembled_logit_relu)),
+                reduction_indices=0)*200)  # smape  
+            '''
             correct_prediction = tf.squeeze(tf.reduce_mean(
-                (tf.abs((self.Y) - (self.model_logits_relu)) / (self.Y + self.model_logits_relu)),
-                reduction_indices=0)*200)  # smape
-            print(correct_prediction)
-            correct_prediction_square = tf.reduce_mean(tf.square((self.Y) - (self.model_logits_relu)), reduction_indices=1)
+                (tf.abs((self.Y) - (self.model.logits_relu)) / (self.Y)),
+                reduction_indices=0)*100)  # smape
+            '''
+            correct_prediction_square = tf.reduce_mean(tf.square((self.Y) - (self.ensembled_logit)), reduction_indices=1)
 
             #accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
@@ -79,7 +82,7 @@ class Trainer:
     # ===================== main =======================
     # Option set config
     # ==================================================
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.40)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.10)
         run_config = tf.ConfigProto()
         run_config.gpu_options.allow_growth = True
 
@@ -100,14 +103,14 @@ class Trainer:
 
             loss_hist_summary = tf.summary.scalar('training_loss_hist', loss)
             merged = tf.summary.merge_all()
-            writer_acc_loss = tf.summary.FileWriter("./board_rrnw_tl1/acc_loss", sess.graph)
+            writer_acc_loss = tf.summary.FileWriter("./board_rrnw_tl_rnnshort/acc_loss", sess.graph)
 
             prediction_hist = tf.placeholder(tf.float32)
             prediction_hist_summary = tf.summary.scalar('pred_hist', prediction_hist)
             prediction_hist_merged = tf.summary.merge([prediction_hist_summary])
 
-            writer_pred = tf.summary.FileWriter("./board_rrnw_tl1/pred", sess.graph)
-            writer_pred_label = tf.summary.FileWriter("./board_rrnw_tl1/pred_label", sess.graph)
+            writer_pred = tf.summary.FileWriter("./board_rrnw_tl_rnnshort/pred", sess.graph)
+            writer_pred_label = tf.summary.FileWriter("./board_rrnw_tl_rnnshort/pred_label", sess.graph)
 
 
         #===============================================
@@ -117,13 +120,12 @@ class Trainer:
             # ...........................
             # shuffle trainset
             # ...........................
-                p = np.random.permutation(int(len(self.trainset) / self.batchSize))
+                p = np.random.permutation(int(len(self.trainset)/self.batchSize))
                 p2 = []
                 for p_ in p:
                     for i in range(self.batchSize):
-                        p2.append(p_ * self.batchSize + i)
+                       p2.append(p_ * self.batchSize + i)
                 self.trainset = np.array(self.trainset)[p2]
-
             # ..........................
             # 3.2.1 학습
             # .........................
@@ -134,16 +136,14 @@ class Trainer:
                 for i in range(int(len(self.trainset) / self.batchSize)):
                     # == batch load
                     batch_x = np.array([np.squeeze(self.trainset[b].get2DShapeInput(),axis=-1)  for b in range(i*self.batchSize,(i+1)*self.batchSize)])
-                    batch_x_long = np.array([np.squeeze(self.trainset[b].get2DShapeInput_long(),axis=-1)  for b in range(i*self.batchSize,(i+1)*self.batchSize)])
-
                     batch_y = np.array([self.trainset[b].pv_label  for b in range(i*self.batchSize,(i+1)*self.batchSize)]).reshape(self.batchSize,-1)
 
                     # == train
-                    sess.run(train_step, feed_dict={self.rnn.X: batch_x,self.rnn_long.X: batch_x_long, self.Y: batch_y})
+                    sess.run(train_step, feed_dict={self.X: batch_x, self.Y: batch_y})
 
 
                     # == logging
-                    loss_print,tloss_print = sess.run([loss,tloss],feed_dict={self.rnn.X: batch_x,self.rnn_long.X: batch_x_long, self.Y: batch_y})
+                    loss_print,tloss_print = sess.run([loss,tloss],feed_dict={self.X: batch_x, self.Y: batch_y, })
                     loss_list.append(loss_print)
                     tloss_list.append(tloss_print)
                 print("반복(Epoch):", e, "트레이닝 데이터 정확도:", np.mean(train_accuracy_list), "손실 함수(loss):",
@@ -160,34 +160,32 @@ class Trainer:
                 tloss_list = []
                 histloginterval = 100
                 if (e % histloginterval == 0):
-                    writer_pred = tf.summary.FileWriter("./board_rrnw_tl1/pred" + str(e), sess.graph)
-                    writer_pred_label = tf.summary.FileWriter("./board_rrnw_tl1/pred_label" + str(e), sess.graph)
+                    writer_pred = tf.summary.FileWriter("./board_rrnw_tl_rnnshort/pred" + str(e), sess.graph)
+                    writer_pred_label = tf.summary.FileWriter("./board_rrnw_tl_rnnshort/pred_label" + str(e), sess.graph)
 
                 for i in range(int(len(self.testset) / self.batchSize_test)):
                     # == test batch load
                     test_batch_x = np.array([np.squeeze(self.testset[b].get2DShapeInput(),axis=-1)  for b in range(i*self.batchSize_test,(i+1)*self.batchSize_test)])
-                    test_batch_x_long = np.array([np.squeeze(self.testset[b].get2DShapeInput_long(),axis=-1)  for b in range(i*self.batchSize_test,(i+1)*self.batchSize_test)])
-
                     test_batch_y = np.array([self.testset[b].pv_label  for b in range(i*self.batchSize_test,(i+1)*self.batchSize_test)]).reshape(self.batchSize_test,-1)
 
                     # == logging
                     test_accuracy, test_accuracy_square = sess.run([correct_prediction, correct_prediction_square],
-                                                                   feed_dict={self.rnn.X: test_batch_x,self.rnn_long.X: test_batch_x_long, self.Y: test_batch_y})
+                                                                   feed_dict={self.X: test_batch_x,
+                                                                              self.Y: test_batch_y})
                     test_accuracy_list.append(test_accuracy)
                     test_accuracy_s_list.append(test_accuracy_square)
 
                     loss_print, tloss_print= sess.run([loss, tloss],
-                                                      feed_dict={self.rnn.X: test_batch_x, self.rnn_long.X: test_batch_x_long,
-                                                                 self.Y: test_batch_y})
+                                                       feed_dict={self.X: test_batch_x,
+                                                                  self.Y: test_batch_y,})
                     loss_list.append(loss_print)
                     tloss_list.append(tloss_print)
 
-                    '''
+
                     if (e % histloginterval == 0):
                         for o in range(len(test_batch_y)):
-                            output = self.model_logits.eval(
-                                feed_dict={self.rnn.X: test_batch_x, self.rnn_long.X: test_batch_x_long,
-                                           self.Y: test_batch_y})
+                            output = self.ensembled_logit.eval(
+                                feed_dict={self.X: test_batch_x, self.Y: test_batch_y})
                             output_scalar = (output[o])
                             #print("정답: ", (test_batch_y[o]), "출력: ", output_scalar, "step: ",       o + i * self.batchSize_test)
                             writer_pred.add_summary(
@@ -200,11 +198,10 @@ class Trainer:
                             # writer_pred_label.flush()
 
                 summary = merged.eval(
-                    feed_dict={self.rnn.X: test_batch_x,self.rnn_long.X:test_batch_x_long, self.Y: test_batch_y, accuracy_hist: np.mean(test_accuracy_list),
+                    feed_dict={self.X: test_batch_x, self.Y: test_batch_y, accuracy_hist: np.mean(test_accuracy_list),
                                accuracy_s_hist: np.mean(test_accuracy_s_list)})
                 writer_acc_loss.add_summary(summary, global_step=e)
                 writer_acc_loss.flush()
-                '''
                 print("테스트 데이터 정확도:", np.mean(test_accuracy_list), "손실 함수(loss):", np.mean(loss_list),"tloss:", np.mean(tloss_list))
                 print()
 

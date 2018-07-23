@@ -12,8 +12,8 @@ class Trainer:
 
 
         #dataset
-        self.dataset_loader = Dataset_loader(pvdir = "./data/pv_2016_gs_processed.csv",timestep_interval =4,duration_hour =6)
-        self.trainset,self.testset = self.dataset_loader.getDataset(shuffle = True)
+        self.dataset_loader = Dataset_loader(pvdir = "./data/pv_2015_2016_gy_processed.csv",duration_hour =6)
+        self.trainset,self.testset = self.dataset_loader.getDataset(shuffle = False)
 
         print(len(self.trainset))
         print(len(self.testset))

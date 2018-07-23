@@ -5,14 +5,17 @@ from tensorflow.contrib.layers import xavier_initializer
 
 
 class Model_RNN:
-    def __init__(self,input_dim,output_dim,duration,modelname = ""):
+    def __init__(self,input_dim,output_dim,duration,modelname = "",X = None):
         self.modelname = modelname
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.duration = duration
 
         self.n_hidden = 128
-        self.X = tf.placeholder(tf.float32,shape=[None,self.duration,self.input_dim]) #None,step,input
+        if(X == None):
+            self.X = tf.placeholder(tf.float32,shape=[None,self.duration,self.input_dim]) #None,step,input
+        else:
+            self.X = X
 
         self.logits = self.build_model()
         self.logits_sigmoid = tf.nn.sigmoid(self.logits)

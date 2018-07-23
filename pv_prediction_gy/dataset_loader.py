@@ -61,7 +61,7 @@ class Dataset_loader:
 
             pv_label = self.pv[i+1,4]
 
-            if(pv_label != 0):
+            if(pv_label != 0 and pv_chunk[-1,4] != 0):
                 dataset.append(Data(pv_chunk,pv_normalized_chunk,pv_chunk_long,pv_normalized_chunk_long,pv_label))
         return dataset
 
