@@ -2,13 +2,14 @@ import tensorflow as tf
 import numpy as np
 from dataset_loader import Dataset_loader
 from model_rnn_regression import Model_RNN
+from tqdm import tqdm
 
 class Trainer:
     def __init__(self):
         #parameters
         self.totalEpoch = 8000
-        self.batchSize = 12
-        self.batchSize_test = 12
+        self.batchSize = 128
+        self.batchSize_test = 128
 
 
         #dataset
@@ -45,7 +46,7 @@ class Trainer:
             y_t = tf.slice(self.Y,[0,0],[self.batchSize-1,1]) - tf.slice(self.Y,[1,0],[self.batchSize-1,1])
             ypred_t = tf.slice(self.model.logits, [0, 0], [self.batchSize - 1, 1]) - tf.slice(self.model.logits, [1, 0],
                                                                                [self.batchSize - 1, 1])
-            tlossrate = 0.1
+            tlossrate = 0
             tloss = tf.reduce_mean(tf.abs(y_t-ypred_t))
 
         with tf.name_scope("trainer") as scope:
@@ -124,7 +125,7 @@ class Trainer:
                 loss_list = []
                 tloss_list = []
                 train_accuracy_list = []
-                for i in range(int(len(self.trainset) / self.batchSize)):
+                for i in tqdm(range(int(len(self.trainset) / self.batchSize))):
                     # == batch load
                     batch_x = np.array([np.squeeze(self.trainset[b].get2DShapeInput(),axis=-1)  for b in range(i*self.batchSize,(i+1)*self.batchSize)])
                     batch_y = np.array([self.trainset[b].pv_label  for b in range(i*self.batchSize,(i+1)*self.batchSize)]).reshape(self.batchSize,-1)

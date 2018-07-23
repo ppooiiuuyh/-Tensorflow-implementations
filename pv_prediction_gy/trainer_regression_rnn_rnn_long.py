@@ -3,7 +3,7 @@ import numpy as np
 from dataset_loader import Dataset_loader
 from model_rnn_regression import Model_RNN
 from tensorflow.contrib.layers import xavier_initializer
-
+from tqdm import tqdm
 
 class Trainer:
     def __init__(self):
@@ -15,7 +15,7 @@ class Trainer:
 
         #dataset
         self.dataset_loader = Dataset_loader(pvdir = "./data/pv_2015_2016_gy_processed.csv",duration_hour =6,duration_hour_long=24*21)
-        self.trainset,self.testset = self.dataset_loader.getDataset(shuffle = True)
+        self.trainset,self.testset = self.dataset_loader.getDataset(shuffle = False)
 
 
         print(len(self.trainset))
@@ -131,7 +131,8 @@ class Trainer:
                 loss_list = []
                 tloss_list = []
                 train_accuracy_list = []
-                for i in range(int(len(self.trainset) / self.batchSize)):
+                for i in tqdm(range(int(len(self.trainset) / self.batchSize))) :
+
                     # == batch load
                     batch_x = np.array([np.squeeze(self.trainset[b].get2DShapeInput(),axis=-1)  for b in range(i*self.batchSize,(i+1)*self.batchSize)])
                     batch_x_long = np.array([np.squeeze(self.trainset[b].get2DShapeInput_long(),axis=-1)  for b in range(i*self.batchSize,(i+1)*self.batchSize)])
@@ -139,13 +140,13 @@ class Trainer:
                     batch_y = np.array([self.trainset[b].pv_label  for b in range(i*self.batchSize,(i+1)*self.batchSize)]).reshape(self.batchSize,-1)
 
                     # == train
-                    sess.run(train_step, feed_dict={self.rnn.X: batch_x,self.rnn_long.X: batch_x_long, self.Y: batch_y})
+                    loss_print, tloss_print,_ = sess.run([loss,tloss,train_step], feed_dict={self.rnn.X: batch_x,self.rnn_long.X: batch_x_long, self.Y: batch_y})
 
 
                     # == logging
-                    loss_print,tloss_print = sess.run([loss,tloss],feed_dict={self.rnn.X: batch_x,self.rnn_long.X: batch_x_long, self.Y: batch_y})
                     loss_list.append(loss_print)
                     tloss_list.append(tloss_print)
+
                 print("반복(Epoch):", e, "트레이닝 데이터 정확도:", np.mean(train_accuracy_list), "손실 함수(loss):",
                       np.mean(loss_list),"tloss:",np.mean(tloss_list),"trate",tlossrate)
 
